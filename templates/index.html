@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Employee List</title>
+</head>
+<body>
+    <h2>Employee Data</h2>
+    <table border="1">
+        <tr><th>Name</th><th>Address</th></tr>
+        {% for name, address in employees %}
+        <tr>
+            <td>{{ name }}</td>
+            <td>{{ address }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
