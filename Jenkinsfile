@@ -43,27 +43,18 @@ pipeline {
         }
 
         stage('Apply Migrations') {
-    steps {
-        script {
-            echo "Listing migration files..."
-            
-            // Get list of migration files relative to workspace (Windows)
-            def migrationFiles = bat(
-                script: 'dir /B "migrations\\*.sql"',
-                returnStdout: true
-            ).trim().split("\r\n")
-
-            echo "Applying migrations..."
-            for (f in migrationFiles) {
-                f = f.trim() // remove extra whitespace
-                echo "Running migration: ${f}"
-
-                // Run migration inside container using the container path
-                bat "docker exec -i %DB_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f /migrations/${f}"
+            steps {
+                script {
+                    echo "Applying migrations..."
+                    bat """
+                    for %f in (migrations\\*.sql) do (
+                        docker exec -i pg_container psql -U postgres -d employees_db -f /migrations/%~nxf
+                    )
+                    """
+                }
             }
         }
-    }
-}
+
         
         stage('Start App') {
             steps {
