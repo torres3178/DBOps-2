@@ -29,7 +29,7 @@ pipeline {
                         -e POSTGRES_USER=%DB_USER% ^
                         -e POSTGRES_PASSWORD=%DB_PASS% ^
                         -p 5432:5432 ^
-                        -v %cd%\\migrations:/migrations ^
+                        -v "%cd%\\migrations:/migrations" ^
                         %DB_IMAGE%
                     """
 
