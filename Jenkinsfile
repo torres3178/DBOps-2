@@ -24,7 +24,7 @@ pipeline {
                     // stop old DB if exists
                     bat "docker rm -f %DB_CONTAINER% || exit 0"
 
-                    // run new Postgres container
+                    // run new Postgres container with migrations mounted
                     bat """
                     docker run -d --name %DB_CONTAINER% ^
                         -e POSTGRES_DB=%DB_NAME% ^
@@ -35,7 +35,7 @@ pipeline {
                         %DB_IMAGE%
                     """
 
-                    // simple wait for DB to be ready (~20s)
+                    // wait for DB startup (~20s)
                     bat "ping -n 20 127.0.0.1 >NUL"
                 }
             }
@@ -44,13 +44,13 @@ pipeline {
         stage('Apply Migrations') {
             steps {
                 script {
-                    // list migration files in Windows way
+                    // list migration files on Windows host
                     def migrationFiles = bat(
                         script: "dir /B migrations\\*.sql",
                         returnStdout: true
                     ).trim().split("\r\n")
 
-                    // apply each SQL migration in container
+                    // run them inside Postgres container using /migrations/ path
                     for (f in migrationFiles) {
                         bat "docker exec -i %DB_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f /migrations/${f}"
                     }
