@@ -35,7 +35,7 @@ pipeline {
                     """
 
                     // wait for DB to initialize (Windows sleep)
-                    bat "timeout /T 15 >NUL"
+                    bat "ping -n 15 127.0.0.1 >NUL"
                 }
             }
         }
