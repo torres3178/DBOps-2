@@ -44,16 +44,17 @@ pipeline {
 
         stage('Apply Migrations') {
             steps {
-                script {
-                    echo "Applying migrations..."
-                    bat """
-                    for %f in (migrations\\*.sql) do (
-                        docker exec -i pg_container psql -U postgres -d employees_db -f /migrations/%~nxf
-                    )
-                    """
+               script {
+                   echo "Applying migrations..."
+                   bat """
+                   for %%f in (migrations\\*.sql) do (
+                       docker exec -i pg_container psql -U postgres -d employees_db -f /migrations/%%~nxf
+                   )
+                   """
                 }
             }
         }
+
 
         
         stage('Start App') {
