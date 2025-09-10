@@ -21,21 +21,31 @@ pipeline {
         stage('Start Database') {
             steps {
                 script {
-                    // stop old container if exists
                     bat "docker rm -f %DB_CONTAINER% || exit 0"
 
-                    // start new postgres
                     bat """
                     docker run -d --name %DB_CONTAINER% ^
                         -e POSTGRES_DB=%DB_NAME% ^
                         -e POSTGRES_USER=%DB_USER% ^
                         -e POSTGRES_PASSWORD=%DB_PASS% ^
                         -p 5432:5432 ^
+                        -v %cd%\\migrations:/migrations ^
                         %DB_IMAGE%
                     """
 
-                    // wait for DB to initialize (Windows sleep)
-                    bat "ping -n 15 127.0.0.1 >NUL"
+                    // safer: wait until DB is ready
+                    bat '''
+                    for /l %%x in (1,1,30) do (
+                        docker exec %DB_CONTAINER% pg_isready -U %DB_USER% -d %DB_NAME%
+                        if !errorlevel! == 0 (
+                            echo Database is ready
+                            exit /b 0
+                        )
+                        ping -n 2 127.0.0.1 >NUL
+                    )
+                    echo Database did not become ready in time
+                    exit /b 1
+                    '''
                 }
             }
         }
@@ -43,8 +53,10 @@ pipeline {
         stage('Apply Migrations') {
             steps {
                 script {
-                    // get list of migration files in Windows way
-                    def migrationFiles = bat(script: "dir /B migrations\\*.sql", returnStdout: true).trim().split("\r\n")
+                    def migrationFiles = bat(
+                        script: "dir /B migrations\\*.sql",
+                        returnStdout: true
+                    ).trim().split("\r\n")
 
                     for (f in migrationFiles) {
                         bat "docker exec -i %DB_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f /migrations/${f}"
