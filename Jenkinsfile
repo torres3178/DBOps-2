@@ -46,8 +46,8 @@ pipeline {
     steps {
         script {
             echo "Listing migration files..."
-
-            // Get list of migration files relative to workspace
+            
+            // Get list of migration files relative to workspace (Windows)
             def migrationFiles = bat(
                 script: 'dir /B "migrations\\*.sql"',
                 returnStdout: true
@@ -55,17 +55,16 @@ pipeline {
 
             echo "Applying migrations..."
             for (f in migrationFiles) {
-                f = f.trim() // clean up whitespace
+                f = f.trim() // remove extra whitespace
                 echo "Running migration: ${f}"
-                
-                // Run migration inside Docker container using container path
-                bat """docker exec -i %DB_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f "/migrations/${f}" """
+
+                // Run migration inside container using the container path
+                bat "docker exec -i %DB_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f /migrations/${f}"
             }
         }
     }
 }
-
-
+        
         stage('Start App') {
             steps {
                 echo "Stopping old App container if exists..."
