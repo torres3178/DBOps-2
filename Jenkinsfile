@@ -14,6 +14,7 @@ pipeline {
     stages {
         stage('Build App Image') {
             steps {
+                echo "Building app Docker image..."
                 bat "docker build -t %APP_IMAGE% ."
             }
         }
@@ -21,10 +22,10 @@ pipeline {
         stage('Start Database') {
             steps {
                 script {
-                    // stop old DB if exists
+                    echo "Stopping old DB container if exists..."
                     bat "docker rm -f %DB_CONTAINER% || exit 0"
 
-                    // run new Postgres container with migrations mounted
+                    echo "Starting new Postgres container..."
                     bat """
                     docker run -d --name %DB_CONTAINER% ^
                         -e POSTGRES_DB=%DB_NAME% ^
@@ -35,36 +36,38 @@ pipeline {
                         %DB_IMAGE%
                     """
 
-                    // wait for DB startup (~20s)
+                    echo "Waiting 20 seconds for DB to initialize..."
                     bat "ping -n 20 127.0.0.1 >NUL"
                 }
             }
         }
 
         stage('Apply Migrations') {
-    steps {
-        script {
-            // list migration files relative to workspace
-            def migrationFiles = bat(
-                script: 'dir /B "migrations\\*.sql"',
-                returnStdout: true
-            ).trim().split("\r\n")
+            steps {
+                script {
+                    echo "Listing migration files..."
+                    def migrationFilesText = bat(
+                        script: 'dir /B "migrations\\*.sql"',
+                        returnStdout: true
+                    ).trim()
 
-            // run each migration inside container
-            for (f in migrationFiles) {
-                // wrap filename in quotes in case of spaces
-                bat "docker exec -i %DB_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f \"/migrations/${f}\""
+                    def migrationFiles = migrationFilesText.split("\r\n")
+
+                    echo "Applying migrations..."
+                    for (f in migrationFiles) {
+                        echo "Running migration: ${f}"
+                        bat "docker exec -i %DB_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f \"/migrations/${f}\""
+                    }
+                }
             }
         }
-    }
-}
-
-
 
         stage('Start App') {
             steps {
+                echo "Stopping old App container if exists..."
                 bat "docker rm -f %APP_CONTAINER% || exit 0"
 
+                echo "Starting App container..."
                 bat """
                 docker run -d --name %APP_CONTAINER% ^
                     --link %DB_CONTAINER%:db ^
