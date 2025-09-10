@@ -44,19 +44,21 @@ pipeline {
         stage('Apply Migrations') {
     steps {
         script {
-            // list migration files in Windows
+            // list migration files relative to workspace
             def migrationFiles = bat(
-                script: "dir /B migrations\\*.sql",
+                script: 'dir /B "migrations\\*.sql"',
                 returnStdout: true
             ).trim().split("\r\n")
 
-            // run them inside container using Linux path
+            // run each migration inside container
             for (f in migrationFiles) {
-                bat "docker exec -i %DB_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f /migrations/${f}"
+                // wrap filename in quotes in case of spaces
+                bat "docker exec -i %DB_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f \"/migrations/${f}\""
             }
         }
     }
 }
+
 
 
         stage('Start App') {
