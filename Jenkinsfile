@@ -42,21 +42,22 @@ pipeline {
         }
 
         stage('Apply Migrations') {
-            steps {
-                script {
-                    // list migration files on Windows host
-                    def migrationFiles = bat(
-                        script: "dir /B migrations\\*.sql",
-                        returnStdout: true
-                    ).trim().split("\r\n")
+    steps {
+        script {
+            // list migration files in Windows
+            def migrationFiles = bat(
+                script: "dir /B migrations\\*.sql",
+                returnStdout: true
+            ).trim().split("\r\n")
 
-                    // run them inside Postgres container using /migrations/ path
-                    for (f in migrationFiles) {
-                        bat "docker exec -i %DB_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f /migrations/${f}"
-                    }
-                }
+            // run them inside container using Linux path
+            for (f in migrationFiles) {
+                bat "docker exec -i %DB_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f /migrations/${f}"
             }
         }
+    }
+}
+
 
         stage('Start App') {
             steps {
